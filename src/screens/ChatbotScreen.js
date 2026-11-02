@@ -11,6 +11,7 @@ import {
   ImageBackground,
   Image,
   Alert,
+  Modal,
   useWindowDimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -155,6 +156,10 @@ export const ChatbotScreen = ({ navigation, route }) => {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [askedQuestionIds, setAskedQuestionIds] = useState([]);
+  const [isListening, setIsListening] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState(null);
+  const [isAttachmentModalVisible, setIsAttachmentModalVisible] = useState(false);
+  const recognitionRef = useRef(null);
   const scrollViewRef = useRef();
 
   useEffect(() => {
@@ -395,19 +400,129 @@ export const ChatbotScreen = ({ navigation, route }) => {
     }`;
   };
 
+    // Voice-to-Text Speech Recognition Handler
+  const handleToggleVoiceInput = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+      setIsListening(false);
+      return;
+    }
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRec) {
+        try {
+          const recognizer = new SpeechRec();
+          recognizer.continuous = false;
+          recognizer.interimResults = true;
+          recognizer.lang = 'en-US';
+
+          recognizer.onstart = () => {
+            setIsListening(true);
+          };
+
+          recognizer.onresult = (event) => {
+            let transcript = '';
+            for (let i = 0; i < event.results.length; i++) {
+              transcript += event.results[i][0].transcript;
+            }
+            if (transcript) {
+              setInputText(transcript);
+            }
+          };
+
+          recognizer.onerror = (e) => {
+            console.log('Voice recognition note:', e.error);
+            setIsListening(false);
+            if (e.error === 'not-allowed') {
+              Alert.alert('Microphone Access', 'Please allow microphone access in your browser to talk with AlphaBuddy.');
+            }
+          };
+
+          recognizer.onend = () => {
+            setIsListening(false);
+          };
+
+          recognizer.start();
+          recognitionRef.current = recognizer;
+        } catch (err) {
+          console.log('Speech recognition exception:', err);
+          setIsListening(false);
+        }
+      } else {
+        Alert.alert('Voice Note', 'Speech-to-text is available on Chrome, Edge, and Safari browsers. Type your message below!');
+      }
+    } else {
+      Alert.alert('Voice Note', 'Voice recognition is ready. Speak clearly into your device microphone.');
+    }
+  };
+
+  // Attachment Picker & Handlers
+  const handleOpenAttachmentPicker = () => {
+    setIsAttachmentModalVisible(true);
+  };
+
+  const handleSelectFeelingTopic = (item) => {
+    setPendingAttachment({
+      type: 'topic',
+      label: item.label,
+      color: item.color,
+      icon: item.icon
+    });
+    setIsAttachmentModalVisible(false);
+    if (!inputText.trim()) {
+      setInputText(`I'd like to talk about ${item.label}`);
+    }
+  };
+
+  const handleTriggerPhotoUpload = () => {
+    setIsAttachmentModalVisible(false);
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.onchange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (loadEvent) => {
+            setPendingAttachment({
+              type: 'image',
+              uri: loadEvent.target.result,
+              fileName: file.name
+            });
+            if (!inputText.trim()) {
+              setInputText("I wanted to share this picture with you.");
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      fileInput.click();
+    } else {
+      Alert.alert('Upload Photo', 'Select a picture or mandala artwork to share.');
+    }
+  };
+
   const API_BASE_URL = getApiHost();
 
   const handleSend = async (textOverride) => {
     const textToSend = textOverride || inputText;
     if (!textToSend.trim()) return;
 
-    // Append child's message
+    // Append child's message with any active attachment
     const userMsg = {
       id: Date.now().toString(),
       sender: 'user',
       text: textToSend,
+      attachment: pendingAttachment,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
+    setPendingAttachment(null);
 
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
@@ -558,6 +673,17 @@ export const ChatbotScreen = ({ navigation, route }) => {
                       isUser ? styles.userBubble : styles.aiBubble,
                     ]}
                   >
+                    {m.attachment && m.attachment.type === 'image' && (
+                      <View style={{ marginBottom: 8, borderRadius: 12, overflow: 'hidden' }}>
+                        <Image source={{ uri: m.attachment.uri }} style={{ width: 220, height: 140, borderRadius: 10 }} resizeMode="cover" />
+                      </View>
+                    )}
+                    {m.attachment && m.attachment.type === 'topic' && (
+                      <View style={[styles.msgAttachmentTag, { backgroundColor: m.attachment.color + '18', borderColor: m.attachment.color + '40' }]}>
+                        <AppIcon name={m.attachment.icon || 'sparkles'} size={12} color={m.attachment.color} />
+                        <Text style={[styles.msgAttachmentTagText, { color: m.attachment.color }]}>{m.attachment.label}</Text>
+                      </View>
+                    )}
                     <Text
                       style={[
                         styles.msgText,
@@ -636,32 +762,56 @@ export const ChatbotScreen = ({ navigation, route }) => {
           </View>
         </ScrollView>
 
+        {/* Pending Attachment Banner */}
+        {pendingAttachment && (
+          <View style={styles.pendingAttachmentBanner}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+              <AppIcon name="paperclip" size={14} color="#7C3AED" strokeWidth={2.2} />
+              {pendingAttachment.type === 'image' ? (
+                <>
+                  <Image source={{ uri: pendingAttachment.uri }} style={{ width: 26, height: 26, borderRadius: 6 }} />
+                  <Text style={styles.pendingAttachmentText} numberOfLines={1}>Attached: {pendingAttachment.fileName || 'Picture'}</Text>
+                </>
+              ) : (
+                <Text style={[styles.pendingAttachmentText, { color: pendingAttachment.color || '#7C3AED', fontWeight: '800' }]} numberOfLines={1}>
+                  Topic: {pendingAttachment.label}
+                </Text>
+              )}
+            </View>
+            <TouchableOpacity onPress={() => setPendingAttachment(null)} style={{ padding: 4 }}>
+              <AppIcon name="close" size={14} color="#94A3B8" strokeWidth={2.5} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Floating Capsule Input Bar */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, isListening && styles.inputContainerListening]}>
           <TouchableOpacity
             style={styles.attachmentBtn}
-            onPress={() => Alert.alert('Attach feelings', 'Select a mood or note to attach to your conversation.')}
+            onPress={handleOpenAttachmentPicker}
             activeOpacity={0.7}
+            title="Attach a feeling topic or drawing"
           >
-            <AppIcon name="paperclip" size={18} color="#64748B" strokeWidth={2} />
+            <AppIcon name="paperclip" size={18} color="#7C3AED" strokeWidth={2.2} />
           </TouchableOpacity>
 
           <TextInput
             style={styles.inputField}
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Type a message..."
-            placeholderTextColor="#94A3B8"
+            placeholder={isListening ? "Listening... Speak now 🎙️" : "Type a message..."}
+            placeholderTextColor={isListening ? "#EF4444" : "#94A3B8"}
             onSubmitEditing={() => handleSend()}
             returnKeyType="send"
           />
 
           <TouchableOpacity
-            style={styles.micBtn}
-            onPress={() => Alert.alert('Voice Note', 'Voice chat is active. Speak into your microphone.')}
+            style={[styles.micBtn, isListening && styles.micBtnListening]}
+            onPress={handleToggleVoiceInput}
             activeOpacity={0.7}
+            title={isListening ? "Stop voice listening" : "Speak to AlphaBuddy"}
           >
-            <AppIcon name="mic" size={18} color="#64748B" strokeWidth={2} />
+            <AppIcon name="mic" size={18} color={isListening ? "#EF4444" : "#7C3AED"} strokeWidth={2.2} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1012,6 +1162,142 @@ const styles = StyleSheet.create({
   sendCircleBtnDisabled: {
     opacity: 0.5,
   },
+
+  pendingAttachmentBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EDE9FE',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  pendingAttachmentText: {
+    fontSize: 12,
+    color: '#6D28D9',
+    fontWeight: '700',
+    flex: 1,
+  },
+  inputContainerListening: {
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FFF1F2',
+  },
+  micBtnListening: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 16,
+  },
+  msgAttachmentTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 6,
+    alignSelf: 'flex-start',
+  },
+  msgAttachmentTagText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 22,
+    width: '100%',
+    maxWidth: 480,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  modalTitleText: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1E1B4B',
+  },
+  modalSubText: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  uploadCardOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FAF5FF',
+    borderWidth: 1.5,
+    borderColor: '#E9D5FF',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 16,
+  },
+  uploadOptionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#6B21A8',
+  },
+  uploadOptionSub: {
+    fontSize: 11,
+    color: '#7E22CE',
+    marginTop: 2,
+  },
+  topicSectionHeader: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  topicsGrid: {
+    gap: 8,
+  },
+  topicPillCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 10,
+  },
+  topicIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topicPillLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  topicPillSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
+  },
+
   sendArrowIcon: {
     color: '#FFFFFF',
     fontSize: 16,
