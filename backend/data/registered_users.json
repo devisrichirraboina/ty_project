@@ -1,0 +1,131 @@
+[
+  {
+    "id": "child_devisri_01",
+    "email": "chirraboinad@gmail.com",
+    "password": "password123",
+    "passwords": [
+      "password123",
+      "Admin@123",
+      "12345678",
+      "123456",
+      "devisri",
+      "devisri123",
+      "shivani",
+      "shivani123"
+    ],
+    "role": "child",
+    "name": "Devisri chirraboina",
+    "age": 14,
+    "parent_email": "shivanichirraboina@gmail.com",
+    "created_at": "2026-09-21T18:00:00.000Z"
+  },
+  {
+    "id": "parent_shivani_01",
+    "email": "shivanichirraboina@gmail.com",
+    "password": "12345678",
+    "passwords": [
+      "password123",
+      "Admin@123",
+      "shivanichirraboina",
+      "shivani123",
+      "123456",
+      "12345678",
+      "devisri",
+      "devisri123"
+    ],
+    "role": "parent",
+    "name": "Shivani Chirraboina",
+    "phone": "+91 9876543210",
+    "children": [
+      {
+        "id": "child_devisri_01",
+        "name": "Devisri chirraboina",
+        "age": 14,
+        "email": "chirraboinad@gmail.com",
+        "relationship": "Daughter",
+        "linked_at": "2026-09-22T01:51:46.382Z"
+      }
+    ],
+    "created_at": "2026-09-21T18:00:00.000Z"
+  },
+  {
+    "id": "admin_master_01",
+    "email": "admin@alphacare.com",
+    "password": "Admin@123",
+    "passwords": [
+      "Admin@123",
+      "admin",
+      "admin123"
+    ],
+    "role": "admin",
+    "name": "AlphaCare Administrator",
+    "created_at": "2026-09-20T10:00:00.000Z"
+  },
+  {
+    "id": "counselor_veda_01",
+    "email": "veda.siddi@alphacare.com",
+    "password": "password123",
+    "passwords": [
+      "password123",
+      "Admin@123",
+      "counselor123",
+      "counselor",
+      "counselor@123",
+      "12345678",
+      "123456",
+      "shivani123",
+      "devisri123"
+    ],
+    "role": "counselor",
+    "name": "Dr. Veda Siddi",
+    "qualification": "Clinical Psychologist (RCI)",
+    "specialization": "Adolescent Mood & Stress Interventions",
+    "experience": "8",
+    "application_status": "approved",
+    "created_at": "2026-09-20T10:00:00.000Z"
+  },
+  {
+    "id": "counselor_generic_01",
+    "email": "counselor@alphacare.com",
+    "password": "password123",
+    "passwords": [
+      "password123",
+      "Admin@123",
+      "counselor123",
+      "counselor",
+      "counselor@123",
+      "12345678",
+      "123456",
+      "shivani123"
+    ],
+    "role": "counselor",
+    "name": "AlphaCare Counselor",
+    "qualification": "Clinical Psychologist",
+    "specialization": "Youth Stress & Coping",
+    "experience": "6",
+    "application_status": "approved",
+    "created_at": "2026-09-20T10:00:00.000Z"
+  },
+  {
+    "id": "counselor_gmail_01",
+    "email": "counselor@gmail.com",
+    "password": "password123",
+    "passwords": [
+      "password123",
+      "Admin@123",
+      "counselor123",
+      "counselor",
+      "counselor@123",
+      "12345678",
+      "123456",
+      "shivani123"
+    ],
+    "role": "counselor",
+    "name": "Dr. Veda Siddi",
+    "qualification": "Clinical Psychologist",
+    "specialization": "Child Mental Health",
+    "experience": "7",
+    "application_status": "approved",
+    "created_at": "2026-09-20T10:00:00.000Z"
+  }
+]

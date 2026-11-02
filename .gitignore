@@ -39,3 +39,22 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Logs and scratch
+*.log
+__pycache__/
+~$*
+scratch/
+
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/node_modules/
+
+# Heavy video binaries
+assets/videos/

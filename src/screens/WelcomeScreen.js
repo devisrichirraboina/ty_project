@@ -1,10 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { COLORS } from '../constants/colors';
 
 export const WelcomeScreen = ({ navigation }) => {
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={true}
+    >
       <View style={styles.card}>
         <View style={styles.pillBadge}>
           <Text style={styles.pillBadgeText}>💜 Your safe space</Text>
@@ -49,7 +53,7 @@ export const WelcomeScreen = ({ navigation }) => {
           <Text style={styles.primaryButtonText}>Get Started →</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -57,9 +61,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
+  },
+  scrollContent: {
+    flexGrow: 1,
     alignItems: 'center',
-    padding: 16,
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 40,
   },
   card: {
     width: '100%',

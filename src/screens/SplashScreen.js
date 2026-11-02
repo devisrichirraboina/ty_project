@@ -1,47 +1,114 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import {
+  View,
+  StyleSheet,
+  Animated,
+  Easing,
+  StatusBar,
+  ImageBackground,
+  Text,
+  useWindowDimensions,
+  Platform,
+} from 'react-native';
 
 export const SplashScreen = ({ navigation }) => {
-  useEffect(() => {
-    // Auto-navigate after 2.5 seconds
-    const timer = setTimeout(() => {
-      navigation.replace('RoleSelection');
-    }, 2500);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const progress = useRef(new Animated.Value(0)).current;
+  const contentFade = useRef(new Animated.Value(0)).current;
+  const { width } = useWindowDimensions();
 
-    return () => clearTimeout(timer);
-  }, [navigation]);
+  useEffect(() => {
+    // Fade in background and branding
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 900,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(contentFade, {
+        toValue: 1,
+        duration: 1100,
+        delay: 300,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    ]).start();
+
+    // Smooth loading progress
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: Platform.OS === 'web' ? 1200 : 2500,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: false,
+    }).start(async ({ finished }) => {
+      if (finished) {
+        navigation.replace('RoleSelection');
+      }
+    });
+  }, [navigation, fadeAnim, progress, contentFade]);
+
+  const loaderWidth = Math.min(width * 0.5, 320);
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.badgePill}>
-          <Text style={styles.badgeText}>✦ AlphaCare</Text>
-        </View>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-        <View style={styles.avatarWrap}>
-          <Text style={styles.avatarEmoji}>🧸</Text>
-        </View>
-
-        <Text style={styles.title}>A little space{'\n'}to feel better.</Text>
-        <Text style={styles.subtitleBold}>Your feelings matter.</Text>
-        <Text style={styles.subtitle}>We're here to understand, support, and grow with you.</Text>
-
-        <View style={styles.tagRow}>
-          <View style={styles.tag}><Text style={styles.tagText}>⭐ AI Support</Text></View>
-          <View style={styles.tag}><Text style={styles.tagText}>💚 Safe Space</Text></View>
-          <View style={styles.tag}><Text style={styles.tagText}>🌱 Wellness</Text></View>
-        </View>
-
-        <TouchableOpacity 
-          style={styles.continueBtn}
-          onPress={() => navigation.replace('RoleSelection')}
-          activeOpacity={0.8}
+      <Animated.View style={[styles.animatedContainer, { opacity: fadeAnim }]}>
+        <ImageBackground
+          source={require('../../assets/splash-bg.png')}
+          style={styles.backgroundImage}
+          resizeMode="cover"
         >
-          <Text style={styles.continueBtnText}>Get Started →</Text>
-        </TouchableOpacity>
+          {/* Subtle warm ambient overlay */}
+          <View style={styles.overlay}>
+            {/* Center Branded Card & Progress Bar */}
+            <Animated.View
+              style={[
+                styles.centerContent,
+                {
+                  opacity: contentFade,
+                  transform: [
+                    {
+                      translateY: contentFade.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [16, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              {/* App Brand Badge */}
+              <View style={styles.brandCard}>
+                <View style={styles.logoRow}>
+                  <Text style={styles.logoSparkle}>✨</Text>
+                  <Text style={styles.brandName}>AlphaCare</Text>
+                </View>
+                <Text style={styles.tagline}>
+                  Smaller Worries, Brighter Tomorrows 💜
+                </Text>
+              </View>
 
-        <Text style={styles.loadingText}>Creating your safe space...</Text>
-      </View>
+              {/* Progress Bar Container */}
+              <View style={[styles.progressWrapper, { width: loaderWidth }]}>
+                <View style={styles.progressTrack}>
+                  <Animated.View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: progress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0%', '100%'],
+                        }),
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.loadingText}>Opening safe space...</Text>
+              </View>
+            </Animated.View>
+          </View>
+        </ImageBackground>
+      </Animated.View>
     </View>
   );
 };
@@ -49,106 +116,96 @@ export const SplashScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    backgroundColor: '#F7F3FC',
   },
-  card: {
-    backgroundColor: '#FFFBFA',
+  animatedContainer: {
+    flex: 1,
+  },
+  backgroundImage: {
+    flex: 1,
     width: '100%',
-    maxWidth: 420,
-    borderRadius: 32,
-    padding: 36,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F3E8FF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    elevation: 4,
+    height: '100%',
   },
-  badgePill: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 20,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  avatarWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#EEF2FF',
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 20,
   },
-  avatarEmoji: {
-    fontSize: 42,
+  centerContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#1E1B4B',
-    textAlign: 'center',
-    lineHeight: 34,
-    marginBottom: 8,
+  brandCard: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    paddingHorizontal: 28,
+    paddingVertical: 18,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.95)',
+    shadowColor: '#2D1B4E',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 6,
+    marginBottom: 24,
+    ...(Platform.OS === 'web'
+      ? {
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }
+      : {}),
   },
-  subtitleBold: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#4338CA',
-    textAlign: 'center',
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  subtitle: {
+  logoSparkle: {
+    fontSize: 22,
+    marginRight: 8,
+  },
+  brandName: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#342352',
+    letterSpacing: -0.5,
+  },
+  tagline: {
     fontSize: 13,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 24,
-  },
-  tagRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 24,
-  },
-  tag: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  tagText: {
-    fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#735F92',
+    letterSpacing: 0.2,
   },
-  continueBtn: {
-    backgroundColor: '#4F46E5',
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 18,
+  progressWrapper: {
     alignItems: 'center',
-    marginBottom: 14,
   },
-  continueBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 15,
+  progressTrack: {
+    width: '100%',
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(224, 214, 245, 0.8)',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+    marginBottom: 10,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#8B5CF6',
+    borderRadius: 8,
   },
   loadingText: {
     fontSize: 12,
-    color: '#94A3B8',
-    fontWeight: '600',
+    fontWeight: '700',
+    color: '#5C4878',
+    letterSpacing: 0.4,
   },
 });
