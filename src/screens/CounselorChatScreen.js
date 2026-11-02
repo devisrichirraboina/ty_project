@@ -18,6 +18,7 @@ import { supabase } from '../services/supabaseClient';
 import { getApiHost } from '../services/apiConfig';
 import { enforceScreenRole, getActiveUserRole } from '../services/authGuard';
 import { ChildSidebar } from '../components/ChildSidebar';
+import { AppIcon } from '../components/icons/AppIcon';
 
 export const CounselorChatScreen = ({ navigation, route }) => {
   const { width } = useWindowDimensions();

@@ -18,6 +18,7 @@ import { supabase } from '../services/supabaseClient';
 import { getApiHost } from '../services/apiConfig';
 import { enforceScreenRole } from '../services/authGuard';
 import { ChildSidebar } from '../components/ChildSidebar';
+import { AppIcon } from '../components/icons/AppIcon';
 
 // Master knowledge base using the exact 57 questionnaire questions
 const QUESTIONNAIRE_QUESTIONS = [
